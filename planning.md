@@ -15,20 +15,17 @@ You must have at least 3 tools. The three required tools are listed — add any 
 ### Tool 1: search_listings
 
 **What it does:**
-<!-- Describe what this tool does in 1–2 sentences -->
+This tool will take the input parameters and compare those to the fields of each listing. It will return 3 matching listings sorted from most relevant to least. 
 
 **Input parameters:**
-<!-- List each parameter, its type, and what it represents -->
-- `description` (str): ...
-- `size` (str): ...
-- `max_price` (float): ...
+- `description` (str): This is a description of the garment you are looking for.
+- `size` (str): This is the size of the garment you are trying to find.
+- `max_price` (float): This is the most you will pay for this particular listing. 
 
 **What it returns:**
-<!-- Describe the return value — what fields does a result contain? -->
-
+It returns 3 matching listings sorted most to least relavent. Also it returns the top result with this format "FitFindr picks the top result: "title" — "price", "platform", "condition"
 **What happens if it fails or returns nothing:**
-<!-- What should the agent do if no listings match? -->
-
+FitFindr tells the user what to do differently for the prompt and stops. It does not call suggest_outfit with an empty input.
 ---
 
 ### Tool 2: suggest_outfit
@@ -137,13 +134,13 @@ Write out what a full user interaction looks like from start to finish — tool 
 **Example user query:** "I'm looking for a vintage graphic tee under $30. I mostly wear baggy jeans and chunky sneakers. What's out there and how would I style it?"
 
 **Step 1:**
-<!-- What does the agent do first? Which tool is called? With what input? -->
+The first thing that agent does is look at the example query and compares it to the available fields of listings.json. Once it has the information it calls search_listing(new_item=<band tee>, wardrobe=<user's wardrobe>) and passes to it as parameters. This returns the top 3 listings ranked from most relevant to the least. FitFindr picks the top result.
 
 **Step 2:**
-<!-- What happens next? What was returned from step 1? What tool is called now? -->
+Step 1 returns a top result from listing.json. It calls the suggest_outfit() fuction. It passes in style tag from the top listing into the funtion as well as the wardrobe that the user already has. From there it returns a suggestion of what to pair with the garment from step 1 and what is in your wardrobe. It also gives you a reccomendation on how to style the garments together as well.
 
 **Step 3:**
-<!-- Continue until the full interaction is complete -->
+The outfit from step 2 and the top result from step 1 is passed into create_fit_car(outfit=<suggestion>, new_item=<band tee>). 
 
 **Final output to user:**
-<!-- What does the user actually see at the end? -->
+At the end the user sees the return from step 3 which is caption summary about what all the steps did. It details what was bought, where it is from, how much you paid for it, and what you paired with it from your wardrobe.
