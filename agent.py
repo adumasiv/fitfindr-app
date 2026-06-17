@@ -18,6 +18,8 @@ Usage (once implemented):
     print(result["error"])   # None on success
 """
 
+import re
+
 from tools import search_listings, suggest_outfit, create_fit_card
 
 
@@ -92,9 +94,59 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     Before writing code, complete the Planning Loop and State Management sections
     of planning.md — your implementation should match what you described there.
     """
-    # TODO: implement the planning loop
     session = _new_session(query, wardrobe)
-    session["error"] = "Planning loop not yet implemented."
+
+    # Step 2: Parse query — extract size, max_price, and description via regex
+    size_match = re.search(r'\bsize\s+([A-Z0-9/]+)\b', query, re.IGNORECASE)
+    price_match = re.search(r'\$?(\d+(?:\.\d+)?)\s*(?:dollars?|usd)?', query, re.IGNORECASE)
+    size = size_match.group(1).upper() if size_match else None
+    max_price = float(price_match.group(1)) if price_match else None
+
+    # Strip price/size fragments to leave a clean description
+    description = query
+    if size_match:
+        description = description[:size_match.start()] + description[size_match.end():]
+    if price_match:
+        description = description[:price_match.start()] + description[price_match.end():]
+    description = re.sub(r'\b(under|below|max|up to|for)\b', '', description, flags=re.IGNORECASE)
+    description = ' '.join(description.split())
+
+    session["parsed"] = {"description": description, "size": size, "max_price": max_price}
+
+    # Step 3: Search — stop early if nothing matches
+    session["search_results"] = search_listings(description, size=size, max_price=max_price)
+    if not session["search_results"]:
+        session["error"] = (
+            f"No listings matched your search. "
+            f"Try broadening your description, raising your budget, or trying a nearby size."
+        )
+        return session
+
+    # Step 4: Select top result
+    session["selected_item"] = session["search_results"][0]
+
+    # Step 5: Suggest outfit — stop early if empty
+    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+    if not session["outfit_suggestion"] or not session["outfit_suggestion"].strip():
+        item = session["selected_item"]
+        session["error"] = (
+            f"Found your item but couldn't generate a styling suggestion right now. "
+            f"Here's what we found: {item['title']} — ${item['price']} on {item['platform']}, "
+            f"{item['condition']}."
+        )
+        return session
+
+    # Step 6: Create fit card — stop early if empty, but keep outfit_suggestion
+    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+    if not session["fit_card"] or not session["fit_card"].strip() or "error" in session["fit_card"].lower():
+        session["error"] = (
+            f"Here's your outfit: {session['outfit_suggestion']}\n\n"
+            f"Couldn't generate a fit card this time."
+        )
+        session["fit_card"] = None
+        return session
+
+    # Step 7: Return completed session
     return session
 
 
